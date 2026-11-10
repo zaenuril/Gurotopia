@@ -1,75 +1,144 @@
+
 #include "pch.hpp"
 
-#include "onVariant/SetClothing.hpp"
-#include "commands/punch.hpp"
+#include "onVariant/SetBux.hpp"
 #include "onVariant/ConsoleMessage.hpp"
+#include "commands/spawn_queue.hpp"
 
-#include "item_activate.hpp"
+#include "item_activate_object.hpp"
 
 void item_activate(ENetEvent& event, ::gamePacket gamePacket)
 {
-    ::peer *pPeer = static_cast<::peer*>(event.peer->data);
+    ::peer* pPeer = static_cast<::peer*>(event.peer->data);
 
-    const ::item &item = id_to_item(gamePacket.id);
-    if (item.cloth_type != clothing::NONE) 
+    if (pPeer->recent_worlds.empty())
+        return;
+
+    auto world = std::ranges::find(
+        worlds,
+        pPeer->recent_worlds.back(),
+        &::world::name
+    );
+
+    if (world == worlds.end())
+        return;
+
+    auto object = std::ranges::find(
+        world->objects,
+        gamePacket.id,
+        &::object::uid
+    );
+
+    if (object == world->objects.end())
+        return;
+
+    const bool spawned = spawn_queue::is_spawned(
+        world->name,
+        object->uid
+    );
+
+    // Item hasil /spawn hanya boleh diambil developer.
+    if (spawned && pPeer->role != DEVELOPER)
     {
-        float &current_cloth = pPeer->clothing[item.cloth_type]; // @note ID of the current clothing being changed
-
-        current_cloth = (current_cloth == gamePacket.id) ? 0 : gamePacket.id;
-
-        pPeer->update_effects();
-        
-        /* @note this is so we can add the latest punch effect (if any) */
-        u_short punch_id = get_punch_id(static_cast<u_int>(current_cloth));
-        if (punch_id != 0)
-            pPeer->punch_effect = punch_id;
-
-        send_varlist(event.peer, { "OnEquipNewItem", gamePacket.id }, pPeer->netid);
-        on::SetClothing(event.peer); // @todo
+        on::ConsoleMessage(
+            event.peer,
+            "`4This item can only be collected by developers."
+        );
+        return;
     }
-    else 
+
+    u_short left = 0;
+
+    if (object->id != 112)
     {
-        const auto item = std::ranges::find(pPeer->slots, gamePacket.id, &::slot::id);
-        if (item == pPeer->slots.end()) return;
-        
-        if (item->id == 242 && item->count >= 100) 
+        const ::item& item = id_to_item(object->id);
+
+        const u_short remember_count = object->count;
+
+        left = pPeer->emplace(
+            ::slot(object->id, remember_count)
+        );
+
+        const u_short collected = remember_count - left;
+
+        if (collected == 0)
+            return;
+
+        on::ConsoleMessage(
+            event.peer,
+            (item.rarity >= 999)
+                ? std::format(
+                    "Collected `w{} {}``.",
+                    collected,
+                    item.raw_name
+                )
+                : std::format(
+                    "Collected `w{} {}``. Rarity: `w{}``",
+                    collected,
+                    item.raw_name,
+                    item.rarity
+                )
+        );
+    }
+    else
+    {
+        pPeer->gems += object->count;
+        pPeer->mysql_update("gems", pPeer->gems);
+        on::SetBux(event);
+    }
+
+    remove_object(event, object->uid);
+
+    const ::object remember_object = *object;
+
+    world->objects.erase(object);
+
+    // Hapus tracking UID lama.
+    if (spawned)
+    {
+        spawn_queue::forget(
+            world->name,
+            remember_object.uid
+        );
+    }
+
+    if (left > 0)
+    {
+        if (spawned)
         {
-            const u_short nokori = modify_item_inventory(event, {1796, 1});
-            if (nokori == 0) 
-            {
-                modify_item_inventory(event, {item->id, -100});
-                const std::string compressed = "You compressed 100 `2World Lock`` into a `2Diamond Lock``!";
-                send_varlist(event.peer, { "OnTalkBubble", pPeer->netid, compressed, 0u, 1u });
-                on::ConsoleMessage(event.peer, compressed);
-            }
+            // Buat object baru tanpa merge dengan item normal.
+            ::object& remainder = world->objects.emplace_back(
+                remember_object.id,
+                left,
+                remember_object.pos,
+                ++world->last_object_uid
+            );
+
+            spawn_queue::mark(
+                world->name,
+                remainder.uid
+            );
+
+            item_change_object(
+                event,
+                ::gamePacket{
+                    .netid = static_cast<int>(0xffffffffu),
+                    .uid = static_cast<int>(remainder.uid),
+                    .count = static_cast<float>(left),
+                    .id = remainder.id,
+                    .pos = remainder.pos
+                }
+            );
         }
-        else if (item->id == 1796 && item->count >= 1)
+        else
         {
-            const u_short nokori = modify_item_inventory(event, {242, 100});
-            short hyaku = 100 - nokori;
-            if (hyaku == 100) 
-            {
-                modify_item_inventory(event, {item->id, -1});
-                const std::string shattered = "You shattered a `2Diamond Lock`` into 100 `2World Lock``!";
-                send_varlist(event.peer, { "OnTalkBubble", pPeer->netid, shattered, 0u, 1u });
-                on::ConsoleMessage(event.peer, shattered);
-            }
-            else modify_item_inventory(event, ::slot(242, -hyaku)); // @note return wls if can't hold 100
-        }
-        else if (item->id == 1486 && item->count >= 100) 
-        {
-            const u_short nokori = modify_item_inventory(event, {6802, 1});
-            if (nokori == 0) 
-                modify_item_inventory(event, {item->id, -100});
-        }
-        else if (item->id == 6802 && item->count >= 1)
-        {
-            const u_short nokori = modify_item_inventory(event, {1486, 100});
-            short hyaku = 100 - nokori;
-            if (hyaku == 100) 
-                modify_item_inventory(event, {item->id, -1});
-            else 
-                modify_item_inventory(event, ::slot(1486, -hyaku)); // @note return growtoken if can't hold 100
+            // Perilaku item normal tetap seperti sebelumnya.
+            add_object(
+                event,
+                ::slot(remember_object.id, left),
+                remember_object.pos,
+                *world
+            );
         }
     }
 }

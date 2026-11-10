@@ -4,7 +4,7 @@
 
 #include <filesystem>
 #include <fstream>
-
+#include <iostream>
 #include "items.hpp"
 
 std::vector<::item> items;
@@ -186,6 +186,13 @@ void decode_items_dat()
         if (version >= 0x15) pos += sizeof(short); // @date September 2025
         if (version >= 0x16)
         {
+            std::cout << "Items version: " << version << '\n';
+            std::cout << "Items count: " << count << '\n';
+            std::cout << "File size: " << size << '\n';
+            std::cout << "pos: " << pos
+                      << " size: " << im_data.size()
+                      << " len: " << len << '\n';
+
             len = *reinterpret_cast<short*>(&im_data[pos]);
             pos += sizeof(short);
             item.info.assign(reinterpret_cast<char*>(&im_data[pos]), len);
@@ -222,5 +229,8 @@ void decode_items_dat()
         
         items.emplace_back(item);
     }
+    std::cout << "Parsed items: " << items.size() << '\n';
+    std::cout << "Final pos: " << pos << '\n';
+    std::cout << "Buffer size: " << im_data.size() << '\n';
     print("items.dat parsed successfully!");
 }

@@ -88,6 +88,7 @@ template std::string peer::mysql_select<std::string>(const std::string&, const s
 void peer::mysql_select_all(bool by_user_id)
 {
     this->user_id    = this->mysql_select<signed>("uid");
+    this->role       = static_cast<u_char>(this->mysql_select<signed>("role"));
     this->growid     = this->mysql_select<std::string>("growid");
     this->password   = this->mysql_select<std::string>("password");
     this->created_at = this->mysql_select<std::time_t>("created_at", "UNIX_TIMESTAMP");
@@ -95,6 +96,8 @@ void peer::mysql_select_all(bool by_user_id)
     this->wl_storage = this->mysql_select<signed>("wl_storage");
     this->level[0]   = this->mysql_select<signed>("level");
     this->level[1]   = this->mysql_select<signed>("xp");
+    this->title_flags = this->mysql_select<signed>("title_flags");
+    
     auto inventory   = this->mysql_select<::blob>("inventory");
 
     if (inventory.size() >= sizeof(int)/*slot_size*/ + sizeof(short)/*size*/)
@@ -138,20 +141,64 @@ void peer::mysql_update_all()
 {
     if (this->growid.empty()) return;
 
-    ::hStmt hStmt{ "UPDATE peer SET inventory = ?, gems = ?, level = ?, xp = ?, wl_storage = ? WHERE growid = ?" };
-    const ::blob inventory = this->serialize_inventory();
-    const int level_value = this->level[0], xp_value = this->level[1];
+    ::hStmt hStmt{
+        "UPDATE peer SET inventory = ?, gems = ?, level = ?, xp = ?, "
+        "wl_storage = ?, title_flags = ? WHERE growid = ?"
+    };
 
-    MYSQL_BIND params[6] = {
+    const ::blob inventory = this->serialize_inventory();
+    const int level_value = this->level[0];
+    const int xp_value = this->level[1];
+
+    MYSQL_BIND params[7] = {
         make_bind_in(inventory),
         make_bind_in(this->gems),
         make_bind_in(level_value),
         make_bind_in(xp_value),
         make_bind_in(this->wl_storage),
+        make_bind_in(this->title_flags),
         make_bind_in(this->growid)
     };
+
     hStmt.bind_param(params);
     hStmt.execute();
+}
+void peer::apply_title()
+{
+    const std::string suffix = " of Legend";
+
+    // Hapus title lama beserta kode warna `b.
+    std::size_t pos = this->display_growid.find(suffix);
+
+    while (pos != std::string::npos)
+    {
+        std::size_t begin = pos;
+
+        if (pos >= 2 &&
+            this->display_growid[pos - 2] == '`' &&
+            this->display_growid[pos - 1] == 'b')
+        {
+            begin = pos - 2;
+        }
+
+        this->display_growid.erase(
+            begin,
+            pos + suffix.size() - begin
+        );
+
+        pos = this->display_growid.find(suffix);
+    }
+
+    if (!this->has_title(TITLE_LEGENDARY))
+        return;
+
+    // Sisipkan title sebelum kode reset warna ``.
+    const std::size_t color_end = this->display_growid.rfind("``");
+    
+    if (color_end != std::string::npos)
+        this->display_growid.insert(color_end, suffix);
+    else
+        this->display_growid += suffix;
 }
 
 bool peer::load(const std::string &growid, const std::string password)
@@ -229,30 +276,51 @@ u_short peer::have_slot(::slot slot)
     return 0;
 }
 
-void peer::add_xp(ENetEvent &event, u_short value) 
+void peer::add_xp(ENetEvent &event, std::uint32_t value)
 {
-    u_short &lvl = this->level.front();
-    u_short &xp = this->level.back() += value; // @note factor the new xp amount
+    std::uint32_t &lvl = this->level.front();
+    std::uint32_t &xp = this->level.back() += value;
 
     for (; lvl < 125; )
     {
-        u_short xp_formula = 50 * (lvl * lvl + 2); // @author https://www.growtopiagame.com/forums/member/553046-kasete
+        const std::uint32_t xp_formula = 50u * (lvl * lvl + 2u);
+
         if (xp < xp_formula) break;
 
         xp -= xp_formula;
         lvl++;
 
-        if (lvl == 50) 
+        if (lvl == 50)
         {
-            modify_item_inventory(event, ::slot{1400, 1}); // @note Mini Growtopian
-            /* @todo based on account age give peer other items... */
+            modify_item_inventory(event, ::slot{1400, 1});
         }
-        if (lvl == 125) on::CountryState(event);
-        send_varlist(event.peer, { "OnPlayerLeveledUp", (unsigned)lvl });
-        send_varlist(event.peer, { "OnParticleEffect", 46u, CL_Vec2f{this->pos.x + 16.0f, this->pos.y + 16.0f}, 0.0f, 0.0f });
 
-        std::string message = std::format("{} is now level {}!", this->display_growid, lvl);
-        send_varlist(event.peer, { "OnTalkBubble", this->netid, message, 0u });
+        if (lvl == 125)
+            on::CountryState(event);
+
+        send_varlist(event.peer, { "OnPlayerLeveledUp", lvl });
+
+        send_varlist(event.peer, {
+            "OnParticleEffect",
+            46u,
+            CL_Vec2f{this->pos.x + 16.0f, this->pos.y + 16.0f},
+            0.0f,
+            0.0f
+        });
+
+        std::string message = std::format(
+            "{} is now level {}!",
+            this->display_growid,
+            lvl
+        );
+
+        send_varlist(event.peer, {
+            "OnTalkBubble",
+            this->netid,
+            message,
+            0u
+        });
+
         on::ConsoleMessage(event.peer, message);
     }
 }

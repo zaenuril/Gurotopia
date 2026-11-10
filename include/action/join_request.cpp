@@ -21,16 +21,16 @@ namespace
 
         const ::peer *pPeer = static_cast<::peer*>(event.peer->data);
         ::peer owner{.user_id = world.owner};
-        
+
         const bool granted = (pPeer->user_id == world.owner || std::ranges::find(world.access, pPeer->user_id) != world.access.end());
         on::ConsoleMessage(event.peer, std::format("`5[```w{}`` `$World Locked`` by {}{}`5]``", world.name,
             owner.mysql_select<std::string>("growid", "", true), granted ? " (`2ACCESS GRANTED``)" : ""));
     }
 }
 
-void action::join_request(ENetEvent& event, const std::string &header, const std::string &world_name = "") 
+void action::join_request(ENetEvent& event, const std::string &header, const std::string &world_name = "")
 {
-    try 
+    try
     {
         ::peer *pPeer = static_cast<::peer*>(event.peer->data);
         ::hPipe hPipe{ header };
@@ -43,13 +43,16 @@ void action::join_request(ENetEvent& event, const std::string &header, const std
         if (!isalnum(name)) throw std::runtime_error("Sorry, spaces and special characters are not allowed in world or door names.  Try again.");
 
         for (char &c : name) c = std::toupper(c); // @note start -> START
-        
+
         auto it = std::ranges::find(worlds, name, &::world::name);
-        if (it == worlds.end()) 
+        if (it == worlds.end())
             it = worlds.emplace(worlds.end(), name);
-            
+
         ::world &world = *it;
+        if (world.nuked && pPeer->role == PLAYER)
+            throw std::runtime_error("This world is inaccessible");
         {
+
             ::blob blob = compress_state(::gamePacket{ .type = 0x04, /*PACKET_SEND_MAP_DATA*/ .state = (int)gamePacketState::EXTENDED });
             blob.push_back(world.serialize());
 
@@ -69,16 +72,27 @@ void action::join_request(ENetEvent& event, const std::string &header, const std
         pPeer->display_growid = std::format("`w{}``", pPeer->growid);
         if (pPeer->user_id == world.owner)
             pPeer->display_growid = std::format("`2{}``", pPeer->growid);
-        else if (std::ranges::find(world.access, pPeer->user_id) != world.access.end()) 
+        else if (std::ranges::find(world.access, pPeer->user_id) != world.access.end())
             pPeer->display_growid = std::format("`^{}``", pPeer->growid);
+
+        if (pPeer->role == MODERATOR)
+            pPeer->display_growid = std::format("`#@{}``", pPeer->growid);
+        else if (pPeer->role == DEVELOPER)
+            pPeer->display_growid = std::format("`8@{}``", pPeer->growid);
+        else if (pPeer->user_id == world.owner)
+            pPeer->display_growid = std::format("`2{}``", pPeer->growid);
+        else if (std::ranges::find(world.access, pPeer->user_id) != world.access.end())
+            pPeer->display_growid = std::format("`^{}``", pPeer->growid);
+        pPeer->apply_title();
+        
 
         pPeer->rest_pos = world.spawn;
 
         pPeer->netid = ++world.netid_counter;
-        peers(pPeer->recent_worlds.back(), PeerSearch::WORLD, [&event, &pPeer, &world](ENetPeer *peer/*send to everyone in world*/) 
+        peers(pPeer->recent_worlds.back(), PeerSearch::WORLD, [&event, &pPeer, &world](ENetPeer *peer/*send to everyone in world*/)
         {
             ::peer *pOthers = static_cast<::peer*>(peer->data); // @note everyone in world's peer.data
-            
+
             if (pOthers->user_id != pPeer->user_id)
             {
                 on::Spawn(*event.peer, pOthers->netid, pOthers->user_id, pOthers->pos, pOthers->display_growid, pOthers->country, pOthers->role, pOthers->role >= DEVELOPER, false);
@@ -98,13 +112,13 @@ void action::join_request(ENetEvent& event, const std::string &header, const std
         if (pPeer->billboard.id != 0) on::BillboardChange(event); // @note don't waste memory if billboard is empty.
 
         send_varlist(event.peer, {
-            "OnSetPos", 
+            "OnSetPos",
             CL_Vec2f{pPeer->rest_pos.x, pPeer->rest_pos.y}
         }, pPeer->netid);
 
-        on::ConsoleMessage(event.peer, 
+        on::ConsoleMessage(event.peer,
             std::format(
-                "World `w{}`` entered.  There are `w{}`` other people here, `w{}`` online.", 
+                "World `w{}`` entered.  There are `w{}`` other people here, `w{}`` online.",
                 world.name, world.visitors, host->connectedPeers
             )
         );

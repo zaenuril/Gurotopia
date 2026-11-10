@@ -21,7 +21,8 @@ void mysql_gateway::create_table_if_not_exist()
         "gems BIGINT DEFAULT 0,"
         "wl_storage INT DEFAULT 0,"
         "level INT DEFAULT 1,"
-        "xp INT DEFAULT 0"
+        "xp INT DEFAULT 0,"
+        "title_flags INT DEFAULT 0"
     ")");
     error = mysql_query(mysql, 
         "CREATE TABLE IF NOT EXISTS world ("
@@ -55,10 +56,13 @@ int mysql_gateway::alter_table(const std::string &table, const std::string &colu
 /* @note i use this for new columns. this could be removed once i 100% copy rgt. */
 void mysql_gateway::integrity()
 {
-    if (!column_found("peer", "gems"))  alter_table("peer", "gems BIGINT DEFAULT 0");
-    if (!column_found("peer", "level")) alter_table("peer", "level INT DEFAULT 1");
-    if (!column_found("peer", "xp"))    alter_table("peer", "xp INT DEFAULT 0");
-    if (!column_found("peer", "wl_storage")) alter_table("peer", "wl_storage INT DEFAULT 0");
+    if (!column_found("peer", "gems"))          alter_table("peer", "gems BIGINT DEFAULT 0");
+    if (!column_found("peer", "level"))         alter_table("peer", "level INT DEFAULT 1");
+    if (!column_found("peer", "xp"))            alter_table("peer", "xp INT DEFAULT 0");
+    if (!column_found("peer", "wl_storage"))    alter_table("peer", "wl_storage INT DEFAULT 0");
+    if (!column_found("world", "nuked"))        alter_table("world", "nuked TINYINT DEFAULT 0");
+    if (!column_found("peer", "role"))          alter_table("peer", "role TINYINT DEFAULT 0");
+    if (!column_found("peer", "title_flags"))   alter_table("peer", "title_flags INT DEFAULT 0");
 }
 
 void mysql_gateway::mysql_connect()

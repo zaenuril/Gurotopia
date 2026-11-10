@@ -2,6 +2,7 @@
 
 #include <cmath> // @note std::floor
 #include <deque> // @note std::deque
+#include <cstdint>
 
 enum bgra : u_int
 {
@@ -71,6 +72,13 @@ enum pstate : int
     S_DUCT_TAPE   = 0x00002000
 };
 
+enum title_flag : int
+{
+    TITLE_LEGENDARY       = 1 << 0,
+    TITLE_SUPER_SUPPORTER = 1 << 1,
+    TITLE_GROW4GOOD       = 1 << 2,
+    TITLE_RAINBOW         = 1 << 3
+};
 class peer {
 public:
     ~peer();
@@ -102,6 +110,24 @@ public:
     int netid{}; // @note peer's netid is world identity. this will be useful for many packet sending
     u_char icon{}; // @note typing or busy icon
     std::string display_growid{}; // @note use this for displaying growid, never use ::growid
+    int title_flags{};
+    
+    bool has_title(title_flag title) const
+    {
+        return (this->title_flags & title) != 0;
+    }
+    
+    void set_title(title_flag title)
+    {
+        this->title_flags |= title;
+    }
+    
+    void remove_title(title_flag title)
+    {
+        this->title_flags &= ~title;
+    }
+    
+    void apply_title();
     std::string country{};
     float game_version{0.0f};
 
@@ -135,11 +161,11 @@ public:
 
     long long gems{0};
     int wl_storage{0};
-    std::array<u_short, 2ull> level{ 1, 0 }; // {level, xp} XP formula credits: https://www.growtopiagame.com/forums/member/553046-kasete
+    std::array<std::uint32_t, 2ull> level{ 1, 0 }; // {level, xp} XP formula credits: https://www.growtopiagame.com/forums/member/553046-kasete
     /*
     * @brief add XP safely, this function also handles level up.
     */
-    void add_xp(ENetEvent &event, u_short value);
+    void add_xp(ENetEvent &event, std::uint32_t value);
 
     /*
     * @brief recalculate transient effects based on clothing.

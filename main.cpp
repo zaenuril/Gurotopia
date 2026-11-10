@@ -4,6 +4,7 @@
 */
 #include "include/pch.hpp"
 #include "include/eventType/_eventType.hpp"
+#include "include/commands/spawn_queue.hpp"
 
 #include "include/database/shouhin.hpp" // @include parse_store()
 #include "include/https/https.hpp" // @include https::listener()
@@ -53,8 +54,15 @@ int main()
 
     ENetEvent event{};
     while (!gSignal)
-        while (enet_host_service(host, &event, 1000/*ms*/) > 0)
+    {
+        while (enet_host_service(host, &event, 10) > 0)
+        {
             eventType_pool[event.type](event);
+            spawn_queue::update();
+        }
+    
+        spawn_queue::update();
+    }
 
     safe_disconnect_peers(gSignal);
     enet_host_destroy(host);

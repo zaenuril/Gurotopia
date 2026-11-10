@@ -107,7 +107,7 @@ void block::reset()
     {
         blob.push_back(block.to_blob());
 
-        if (block.fg != 0 || block.fg!=2||block.fg!=4||block.fg!=8||block.fg!=14) // @note so we can save time
+        if (block.fg != 0 && block.fg != 2 && block.fg != 4 && block.fg != 8 && block.fg != 14)
         if (char type = get_type(id_to_item(block.fg)); type > '\x00')
         {
             blob.u8(type);
@@ -239,6 +239,7 @@ void world::mysql_select_all()
 {
     this->name = this->mysql_select<std::string>("name");
     this->owner = this->mysql_select<int>("owner");
+    this->nuked = this->mysql_select<int>("nuked");
     {
         ::blob blob = this->mysql_select<::blob>("blocks");
 
@@ -640,4 +641,60 @@ void blast::thermonuclear(::world &world)
 
         block.reset();
     }
+}
+
+void blast::clear(::world &world)
+{
+    auto is_white_door = [](const ::block &block)
+    {
+        return id_to_item(block.fg).raw_name == "White Door";
+    };
+
+    // Preserve Bedrock, Main Door, and White Door.
+    for (std::size_t i = 0; i < world.blocks.size(); ++i)
+    {
+        ::block &block = world.blocks[i];
+
+        if (block.fg == 8 || block.fg == 6 || is_white_door(block))
+            continue;
+
+        block.reset();
+    }
+
+    // Preserve door metadata only for doors that still exist.
+    std::erase_if(world.doors, [&](const ::door &door)
+    {
+        const std::size_t index = cord(
+            door.pos.x_int(),
+            door.pos.y_int()
+        );
+
+        if (index >= world.blocks.size())
+            return true;
+
+        const ::block &block = world.blocks[index];
+
+        return block.fg != 6 && !is_white_door(block);
+    });
+
+    // Remove metadata belonging to cleared tiles.
+    world.signs.clear();
+    world.trees.clear();
+    world.random_blocks.clear();
+
+    // Remove all dropped items.
+    world.objects.clear();
+
+    // Broadcast updated world map.
+    ::blob blob = compress_state(::gamePacket{
+        .type = 0x04,
+        .state = static_cast<int>(gamePacketState::EXTENDED)
+    });
+
+    blob.push_back(world.serialize());
+
+    peers(world.name, PeerSearch::WORLD, [&blob](ENetPeer *peer)
+    {
+        send_data(*peer, blob);
+    });
 }

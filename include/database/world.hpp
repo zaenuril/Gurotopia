@@ -147,13 +147,13 @@ public:
     void mysql_select_all();
 
     std::string name{};
+    bool nuked{false};
 
     int owner{ 00 }; // @note owner of world using peer's user id.
     std::array<int, 20> access{}; // @note {user_id} @credit https://www.growtopiagame.com/forums/member/440629-yeldyt
     bool is_public{}; // @note checks if world is public to break/place
     u_char lock_state{0x00}; // @note uses lock_state::
     u_char minimum_entry_level{1}; // @note minimal level required to enter a world
-
     u_char visitors{}; // @note the current number of peers in a world, excluding invisable peers
     u_char netid_counter{}; // @note a number that only increases, this value resets during ~world()
 
@@ -213,4 +213,5 @@ extern bool door_mover(::world &world, const ::pos &pos);
 namespace blast
 {
     extern void thermonuclear(::world &world);
+    extern void clear(::world &world);
 }
