@@ -1,0 +1,44 @@
+[33m4a8d5ac[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m Add more command  and title
+ -                                          |    0
+ "e -File \357\201\274"                     |  298 [32m+++++[m
+ include/action/__action.cpp                |  144 [32m+[m[31m--[m
+ include/action/dialog_return/find_item.cpp |   26 [32m+[m[31m-[m
+ include/action/enter_game.cpp              |  125 [32m++[m[31m-[m
+ include/action/input.cpp                   |  128 [32m+[m[31m--[m
+ include/action/join_request.cpp            |  280 [32m++[m[31m---[m
+ include/action/quit_to_exit.cpp            |   67 [32m+[m[31m-[m
+ include/action/quit_to_exit.hpp            |   17 [32m+[m[31m-[m
+ include/action/respawn_spike.hpp           |   12 [32m+[m[31m-[m
+ include/commands/__command.cpp             |  110 [32m+[m[31m-[m
+ include/commands/clearspawn.cpp            |   74 [32m++[m
+ include/commands/clearspawn.hpp            |    6 [32m+[m
+ include/commands/clearworld.cpp            |  126 [32m+++[m
+ include/commands/clearworld.hpp            |    3 [32m+[m
+ include/commands/givetitle.cpp             |  125 [32m+++[m
+ include/commands/givetitle.hpp             |    3 [32m+[m
+ include/commands/givexp.cpp                |  103 [32m++[m
+ include/commands/givexp.hpp                |    4 [32m+[m
+ include/commands/nuke.cpp                  |   71 [32m++[m
+ include/commands/nuke.hpp                  |    3 [32m+[m
+ include/commands/removetitle.cpp           |  125 [32m+++[m
+ include/commands/removetitle.hpp           |    3 [32m+[m
+ include/commands/sb.cpp                    |   70 [32m+[m[31m-[m
+ include/commands/setlevel.cpp              |  138 [32m+++[m
+ include/commands/setlevel.hpp              |    3 [32m+[m
+ include/commands/spawn.cpp                 |  118 [32m++[m
+ include/commands/spawn.hpp                 |    3 [32m+[m
+ include/commands/spawn_queue.cpp           |  177 [32m+++[m
+ include/commands/spawn_queue.hpp           |   30 [32m+[m
+ include/commands/unnuke.cpp                |   44 [32m+[m
+ include/commands/unnuke.hpp                |    3 [32m+[m
+ include/database/database.cpp              |  442 [32m++++[m[31m----[m
+ include/database/items.cpp                 |  462 [32m++++[m[31m----[m
+ include/database/peer.cpp                  |  766 [32m+++++++[m[31m------[m
+ include/database/peer.hpp                  |  510 [32m++++[m[31m-----[m
+ include/database/world.cpp                 | 1343 [32m++++++++++++[m[31m-----------[m
+ include/database/world.hpp                 |  433 [32m++++[m[31m----[m
+ include/gamePacket/item_activate.cpp       |  219 [32m++[m[31m--[m
+ include/gamePacket/tile_change.cpp         | 1630 [32m++++++++++++++[m[31m--------------[m
+ include/onVariant/CountryState.cpp         |   35 [32m+[m[31m-[m
+ main.cpp                                   |   10 [32m+[m[31m-[m
+ 42 files changed, 5053 insertions(+), 3236 deletions(-)
