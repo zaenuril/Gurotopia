@@ -6,6 +6,7 @@
 #include "onVariant/ConsoleMessage.hpp"
 #include "commands/punch.hpp"
 #include "tools/string.hpp"
+#include <array>
 
 #include "peer.hpp"
 
@@ -77,28 +78,48 @@ T peer::mysql_select(const std::string &column, const std::string &arg, bool by_
 
     hStmt.execute();
     hStmt.fetch();
-    if constexpr (std::is_same_v<T, std::string>)
+    if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, ::blob>)
         value.resize(length);
 
     return value;
 }
 /* since we will only select during mysql_select_all */ // @note add templates here if use select outside of this file.
 template std::string peer::mysql_select<std::string>(const std::string&, const std::string&, bool); // @note tile_change.cpp (World Lock owner name)
+template ::blob peer::mysql_select<::blob>(const std::string&, const std::string&, bool);
+
+::blob serialize_clothing(const std::array<float, 10>& clothing)
+{
+        ::blob result;
+    for(float item : clothing)
+        result.f32(item);
+    return result;
+}
 
 void peer::mysql_select_all(bool by_user_id)
 {
-    this->user_id    = this->mysql_select<signed>("uid");
-    this->role       = static_cast<u_char>(this->mysql_select<signed>("role"));
-    this->growid     = this->mysql_select<std::string>("growid");
-    this->password   = this->mysql_select<std::string>("password");
-    this->created_at = this->mysql_select<std::time_t>("created_at", "UNIX_TIMESTAMP");
-    this->gems       = this->mysql_select<long long>("gems");
-    this->wl_storage = this->mysql_select<signed>("wl_storage");
-    this->level[0]   = this->mysql_select<signed>("level");
-    this->level[1]   = this->mysql_select<signed>("xp");
-    this->title_flags = this->mysql_select<signed>("title_flags");
+    this->user_id        = this->mysql_select<signed>("uid");
+    this->role           = static_cast<u_char>(this->mysql_select<signed>("role"));
+    this->role_notice    = this->mysql_select<signed>("role_notice");
+    this->growid         = this->mysql_select<std::string>("growid");
+    this->password       = this->mysql_select<std::string>("password");
+    this->created_at     = this->mysql_select<std::time_t>("created_at", "UNIX_TIMESTAMP");
+    this->gems           = this->mysql_select<long long>("gems");
+    this->wl_storage     = this->mysql_select<signed>("wl_storage");
+    this->level[0]       = this->mysql_select<signed>("level");
+    this->level[1]       = this->mysql_select<signed>("xp");
+    this->title_flags    = this->mysql_select<signed>("title_flags");
+
+    auto clothing_data   = this->mysql_select<::blob>("clothing");
+
+    if (clothing_data.size() == sizeof(this->clothing))
+    {
+        int pos = 0;
+
+        for(float& item : this->clothing)
+            clothing_data.read_f32(item, pos);
+    }
     
-    auto inventory   = this->mysql_select<::blob>("inventory");
+    auto inventory       = this->mysql_select<::blob>("inventory");
 
     if (inventory.size() >= sizeof(int)/*slot_size*/ + sizeof(short)/*size*/)
     {
@@ -143,20 +164,22 @@ void peer::mysql_update_all()
 
     ::hStmt hStmt{
         "UPDATE peer SET inventory = ?, gems = ?, level = ?, xp = ?, "
-        "wl_storage = ?, title_flags = ? WHERE growid = ?"
+        "wl_storage = ?, title_flags = ?, clothing = ? WHERE growid = ?"
     };
 
     const ::blob inventory = this->serialize_inventory();
+    const ::blob clothing_data = serialize_clothing(this->clothing);
     const int level_value = this->level[0];
     const int xp_value = this->level[1];
 
-    MYSQL_BIND params[7] = {
+    MYSQL_BIND params[8] = {
         make_bind_in(inventory),
         make_bind_in(this->gems),
         make_bind_in(level_value),
         make_bind_in(xp_value),
         make_bind_in(this->wl_storage),
         make_bind_in(this->title_flags),
+        make_bind_in(clothing_data),
         make_bind_in(this->growid)
     };
 
