@@ -118,6 +118,7 @@ void peer::mysql_select_all(bool by_user_id)
         for(float& item : this->clothing)
             clothing_data.read_f32(item, pos);
     }
+    this->update_effects();
     
     auto inventory       = this->mysql_select<::blob>("inventory");
 
@@ -349,6 +350,7 @@ void peer::add_xp(ENetEvent &event, std::uint32_t value)
 }
 
 void peer::update_effects()
+
 {
     this->punch_effect = 0;
     for (float cloth : this->clothing)
@@ -356,6 +358,15 @@ void peer::update_effects()
         u_char punch_id = get_punch_id((u_int)cloth);
         if (punch_id != 0) // @note an actual change rather than no effect.
             this->punch_effect = punch_id;
+    }
+
+    if (this->clothing[clothing::BACK] != 0)
+    {
+        this->state |= S_DOUBLE_JUMP;
+    } 
+    else 
+    {
+        this->state &= ~S_DOUBLE_JUMP;
     }
 }
 
