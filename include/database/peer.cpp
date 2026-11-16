@@ -356,6 +356,12 @@ void peer::update_effects()
     for (float cloth : this->clothing)
     {
         u_char punch_id = get_punch_id((u_int)cloth);
+        print(std::format(
+            "[PUNCH DEBUG] ITEM ID: {} | NAME: {} | EFFECT: {}",
+            (u_int)cloth,
+            id_to_item((u_short)cloth).raw_name,
+            punch_id
+        ));
         if (punch_id != 0) // @note an actual change rather than no effect.
             this->punch_effect = punch_id;
     }

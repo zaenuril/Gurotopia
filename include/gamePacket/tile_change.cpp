@@ -143,7 +143,9 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                         ::peer owner{}; // @note offline "fake" peer, only used to read the owner's name
                         owner.user_id = world->owner;
                         throw std::runtime_error(std::format("`5[```w{}`` `$World Locked`` by `w{}```5]``", world->name, owner.mysql_select<std::string>("growid", "", true)));
+                        
                     }
+
                     break;
                 }
                 case type::PROVIDER:
@@ -748,12 +750,12 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                 case type::LOCK:
                 {
                     if (is_tile_lock(item.id)) break; // @note seperate area for 'range_lock'
-                    
+
                     if (!world->owner)
                     {
                         world->owner = pPeer->user_id;
                         lock_visuals = true;
-                        
+
                         pPeer->display_growid = std::format("`2{}``", pPeer->growid);
                         if (pPeer->role == MODERATOR)
                             pPeer->display_growid = std::format("`#@{}``", pPeer->growid);
@@ -762,13 +764,13 @@ void tile_change(ENetEvent& event, ::gamePacket gamePacket)
                         pPeer->apply_title();
                         on::NameChanged(event);
                         std::string country = pPeer->country;
-                        
+
                         if (pPeer->level[0] == 125)
                             country += "|maxLevel";
-                        
+
                         if (pPeer->title_flags & TITLE_GROW4GOOD)
                             country += "|donor";
-                        
+
                         peers(pPeer->recent_worlds.back(), PeerSearch::WORLD,
                             [&](ENetPeer* peer)
                             {

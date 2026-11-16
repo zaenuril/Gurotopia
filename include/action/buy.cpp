@@ -131,7 +131,7 @@ void action::buy(ENetEvent& event, const std::string& header, const std::string_
                     send_inventory_state(event); // @note update the new slots
                 }
                 else modify_item_inventory(event, {item.first, item.second});
-                received.append(std::format("{}, ", raw_name)); // @todo add green text to rare items, or something cool.
+                received.append(std::format("`2{}, ", raw_name)); // @todo add green text to rare items, or something cool.
             }
             send_varlist(event.peer, { "OnStorePurchaseResult", (_tab < 5) ? 
                 std::format(

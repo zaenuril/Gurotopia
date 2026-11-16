@@ -13,6 +13,14 @@ void warp(ENetEvent& event, const std::string_view text)
     send_gameMessage(event.peer, {.message = std::format("action|log\nmsg| `6/warp {}``", world_name)});
     send_varlist(event.peer, { "OnSetFreezeState", 1 });
     send_gameMessage(event.peer, {.message = std::format("action|log\nmsg|Magically warping to world `5{}``...", world_name)});
+ 
+    // send_varlist(event.peer, {
+    //     "OnAddNotification",
+    //     "interface/atomic_button.rttex",
+    //     "Received Pet Cute Heart!",
+    //     "audio/hub_open.wav",
+    //     0
+    // });
 
     action::quit_to_exit(event, "", true);
     action::join_request(event, "", world_name);

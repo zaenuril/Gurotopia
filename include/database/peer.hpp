@@ -110,8 +110,8 @@ public:
     int netid{}; // @note peer's netid is world identity. this will be useful for many packet sending
     u_char icon{}; // @note typing or busy icon
     std::string display_growid{}; // @note use this for displaying growid, never use ::growid
-    int title_flags{};
-    
+    int title_flags{};  
+    int role_notice{}; // @note role notice when player login
     bool has_title(title_flag title) const
     {
         return (this->title_flags & title) != 0;

@@ -37,6 +37,14 @@ void receive(ENetEvent& event)
             if (event.packet->dataLength < sizeof(::gamePacket)) break;
 
             ::gamePacket gamePacket = make_gamePacket(event.packet->data);
+
+            print(std::format(
+                "[PACKET] TYPE: {} | ID: {} | NETID: {} | STATE: {}",
+                gamePacket.type,
+                gamePacket.id,
+                gamePacket.netid,
+                gamePacket.state
+            ));
             gamePacket.size = event.packet->dataLength - sizeof(::gamePacket); // @todo did i do this right? or check for flag ::EXTENDED
 
             if (const auto i = gamePacket_pool.find(gamePacket.type); i != gamePacket_pool.end())

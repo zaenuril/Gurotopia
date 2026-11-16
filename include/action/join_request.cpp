@@ -25,6 +25,7 @@ namespace
         const bool granted = (pPeer->user_id == world.owner || std::ranges::find(world.access, pPeer->user_id) != world.access.end());
         on::ConsoleMessage(event.peer, std::format("`5[```w{}`` `$World Locked`` by {}{}`5]``", world.name,
             owner.mysql_select<std::string>("growid", "", true), granted ? " (`2ACCESS GRANTED``)" : ""));
+
     }
 }
 
@@ -84,7 +85,7 @@ void action::join_request(ENetEvent& event, const std::string &header, const std
         else if (std::ranges::find(world.access, pPeer->user_id) != world.access.end())
             pPeer->display_growid = std::format("`^{}``", pPeer->growid);
         pPeer->apply_title();
-        
+
 
         pPeer->rest_pos = world.spawn;
 

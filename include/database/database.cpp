@@ -1,3 +1,4 @@
+#include "items.hpp"
 #include "pch.hpp"
 
 #include "tools/terminal.hpp"
@@ -62,7 +63,9 @@ void mysql_gateway::integrity()
     if (!column_found("peer", "wl_storage"))    alter_table("peer", "wl_storage INT DEFAULT 0");
     if (!column_found("world", "nuked"))        alter_table("world", "nuked TINYINT DEFAULT 0");
     if (!column_found("peer", "role"))          alter_table("peer", "role TINYINT DEFAULT 0");
+    if (!column_found("peer", "role_notice"))   alter_table("peer", "role_column TINYINT DEFAULT 0");
     if (!column_found("peer", "title_flags"))   alter_table("peer", "title_flags INT DEFAULT 0");
+    if (!column_found("peer", "clothing"))      alter_table("peer", "clothing BLOB");
 }
 
 void mysql_gateway::mysql_connect()

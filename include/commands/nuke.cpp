@@ -11,7 +11,11 @@ void nuke(ENetEvent& event, const std::string_view text)
 
     if (pPeer->role < MODERATOR)
     {
-        on::ConsoleMessage(event.peer, "You don't have permission to use this command.");
+        on::ConsoleMessage(event.peer, "`4You don't have permission to use this command.");
+
+        send_gameMessage(event.peer, {
+            .message = "action|play_sfx\nfile|audio/beep.wav\ndelayMS|0"
+        });
         return;
     }
 
@@ -47,6 +51,9 @@ void nuke(ENetEvent& event, const std::string_view text)
         send_gameMessage(peer, {
             .message = "action|play_sfx\nfile|audio/bigboom.wav\ndelayMS|0"
         });
+
+        // im tired boss
+        
     });
     it->mysql_update("nuked", 1);
 
@@ -65,7 +72,10 @@ void nuke(ENetEvent& event, const std::string_view text)
         ENetEvent target_event{};
         target_event.peer = target;
 
-        on::ConsoleMessage(target, "This world has been nuked.");
+        on::ConsoleMessage(target, "This world inaccessible.");
         action::quit_to_exit(target_event, "", false, true);
+        send_gameMessage(event.peer, {
+            .message = "action|play_sfx\nfile|audio/beep.wav\ndelayMS|0"
+        });
     }
 }

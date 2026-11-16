@@ -11,6 +11,18 @@
 
 #include "_gamePacket.hpp"
 
+void debug_item_activate(ENetEvent& event, ::gamePacket gamePacket)
+{
+    print(std::format(
+        "ITEM_ACTIVATE | ID: {} | NETID: {} | STATE: {}",
+        gamePacket.id,
+        gamePacket.netid,
+        gamePacket.state
+    ));
+
+    item_activate(event, gamePacket);
+}
+
 const std::unordered_map<u_char, void(*)(ENetEvent&, ::gamePacket)> gamePacket_pool
 {
     {0x00, &movement},
@@ -20,5 +32,8 @@ const std::unordered_map<u_char, void(*)(ENetEvent&, ::gamePacket)> gamePacket_p
     {0x0b, &item_activate_object},
     {0x12, &set_icon_state},
     {0x15, &ping_reply},
-    {0x1a, &disconnect}
+    {0x1a, &disconnect},
+    {0x0a, &debug_item_activate},
 };
+
+

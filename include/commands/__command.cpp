@@ -23,13 +23,17 @@
 #include "clearspawn.hpp"
 #include "givetitle.hpp"
 #include "removetitle.hpp"
+#include "giverole.hpp"
+#include "online.hpp"
+#include "giveitem.hpp"
+
 
 #include "__command.hpp"
 
 /* if you plan to use this outside of this file, please include in __command.hpp (^-^) - and just make it a void. */
 void help_return(ENetEvent& event, const std::string_view text)
 {
-    send_gameMessage(event.peer, {.message = "action|log\nmsg|>> Commands: /msg /sb /time /spawn /setlevel <name> <level> /givexp <name> amount> /givetitle <name> <title> /clearworld /clearspawn /who /me /nuke /find /warp /punch /skin /news /weather /ghost /ageworld /wave /dance /love /sleep /facepalm /fp /smh /yes /no /omg /idk /shrug /furious /rolleyes /foldarms /stubborn /fold /dab /sassy /dance2 /march /grumpy /shy"});
+    send_gameMessage(event.peer, {.message = "action|log\nmsg|>> Commands: /msg /sb /time /spawn /online /giverole <name> <role> /give <item_id> <amount> /setlevel <name> <level> /givexp <name> amount> /givetitle <name> <title> /clearworld /clearspawn /who /me /nuke /find /warp /punch /skin /news /weather /ghost /ageworld /wave /dance /love /sleep /facepalm /fp /smh /yes /no /omg /idk /shrug /furious /rolleyes /foldarms /stubborn /fold /dab /sassy /dance2 /march /grumpy /shy"});
 }
 
 const std::unordered_map<std::string_view, void(*)(ENetEvent&, std::string_view)> cmd_pool
@@ -49,13 +53,16 @@ const std::unordered_map<std::string_view, void(*)(ENetEvent&, std::string_view)
     {"/weather", weather},
     {"/ghost", ghost},
     {"/givetitle", givetitle},
+    {"/giverole", giverole},
     {"/removetitle", removetitle},
     {"/nuke", nuke},
     {"/givexp", givexp},
+    {"/give", giveitem},
     {"/clearworld", clearworld},
     {"/spawn", spawn},
     {"/unnuke", unnuke},
     {"/clearspawn", clearspawn},
+    {"/online", online},
     {"/setlevel", setlevel},
     {"/wave", on::Action}, {"/dance", on::Action}, {"/love", on::Action}, {"/sleep", on::Action}, {"/facepalm", on::Action}, {"/fp", on::Action},
     {"/smh", on::Action}, {"/yes", on::Action}, {"/no", on::Action}, {"/omg", on::Action}, {"/idk", on::Action}, {"/shrug", on::Action},
